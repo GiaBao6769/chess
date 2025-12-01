@@ -473,6 +473,8 @@ def convert_pos_to_cord(pos: tuple[int, int]) -> str:
 def convert_cord_to_pos(cord: str) -> tuple[int, int]:
     return 8 - int(cord[1]), ord(cord[0]) - 97
 
+def pawnRow(color: int) -> int:
+    return startRow(color) + pawnDirection(color)
 
 def startRow(color: int) -> int:
     """
@@ -789,7 +791,6 @@ longCastleNotation: str = "0-0-0"
 check: str = "check"
 checkmate: str = "checkmate"
 
-
 def specifyCell(samePiece: int, sameRank: int, sameFile: int, pos: tuple[int, int]) -> str:
     if samePiece > 1:
         if sameRank > 1 and sameFile > 1:
@@ -996,4 +997,5 @@ if __name__ == "__main__":
     #         if inputMove(row, file, toRow, toFile):
     #             break
     #         print("Invalid Move!")
+
 
