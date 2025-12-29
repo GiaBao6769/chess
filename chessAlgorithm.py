@@ -30,11 +30,12 @@ class Piece:
     def move(self, ed_pos: tuple[int, int], moveType: int) -> None:
         global classBoard, checkBoard, placeHolder, checkBoard_placeHolder, take, moved_moves, move_types
 
-        # moved_moves.append((self.position, ed_pos, moveType), getPiece(ed_pos))
         if moveType == move_types[enPassantLeft]:
             moved_moves[-1] = ((self.position, ed_pos, moveType), getPiece((ed_pos[0], ed_pos[1]-1)))
+
         elif moveType == move_types[enPassantRight]:
             moved_moves[-1] = ((self.position, ed_pos, moveType), getPiece((ed_pos[0], ed_pos[1]+1)))
+
         elif moveType == move_types[take] or moveType == move_types[takeAndPromote]:
             getPiece(ed_pos).destroy()
 
@@ -77,12 +78,12 @@ class Knight(Piece):
         row, file = self.position
         for ud in [1, -1]:
             for lr in [2, -2]:
-                for udx, lrx in [[ud, lr], [lr, ud]]:
+                for udx, lrx in ((ud, lr), (lr, ud)):
                     if isValidCell(row+udx, file + lrx):
                         toCell: Piece = getPiece((row + udx, file + lrx))
-                        if not toCell.isOccupied() and isPossibleMove(self.position, (row+udx, file+lrx)):
+                        if not toCell.isOccupied() and isSafeMove(self.position, (row+udx, file+lrx)):
                             possible_moves_lst.append((self.position, (row + udx, file + lrx), move_types[none]))
-                        elif toCell.isTakeable(self.color) and isPossibleMove(self.position, (row+udx, file+lrx)):
+                        elif toCell.isTakeable(self.color) and isSafeMove(self.position, (row+udx, file+lrx)):
                             possible_moves_lst.append((self.position, (row + udx, file + lrx), move_types[take]))
 
 
@@ -93,18 +94,18 @@ class Knight(Piece):
 class Bishop(Piece):
     def get_bishop_moves(self) -> None:
         global board_size, placeHolder, possible_moves_lst, move_types, take, none
-        for ud in [-1, 1]:
-            for lr in [-1, 1]:
+        for ud in (-1, 1):
+            for lr in (-1, 1):
                 row, file = self.position
                 while isValidCell(row+ud, file+lr):
                     row += ud
                     file += lr
                     toCell: Piece = getPiece((row, file))
                     if toCell.isOccupied():
-                        if toCell.isTakeable(self.color) and isPossibleMove(self.position, (row, file)):
+                        if toCell.isTakeable(self.color) and isSafeMove(self.position, (row, file)):
                             possible_moves_lst.append((self.position, (row, file), move_types[take]))
                         break
-                    elif isPossibleMove(self.position, (row, file)):
+                    elif isSafeMove(self.position, (row, file)):
                         possible_moves_lst.append((self.position, (row, file), move_types[none]))
 
     def get_possible_moves(self) -> None:
@@ -122,27 +123,28 @@ class Pawn(Piece):
     def __str__(self):
         return f"{self.name=}, {self.color=}, {self.position=}, {self.firstMove=}, {self.en_passant=}"
 
+
     def get_pawn_moves(self) -> None:
         global possible_moves_lst, move_types, take, twoCellsMove, promotion, none, enPassantLeft, enPassantRight
         direction: int = pawnDirection(self.color)
         pos: tuple[int, int] = self.position
         if isValidCell(pos[0] + direction, pos[1]) and not isOccupied((pos[0]+direction, pos[1])) and \
-                isPossibleMove(pos, (pos[0]+direction, pos[1])):
+                isSafeMove(pos, (pos[0]+direction, pos[1])):
             possible_moves_lst.append((pos, (pos[0] + direction, pos[1]), move_types[promotion if pos[0] + direction == startRow((self.color + 1) % 2) else none]))
 
         for lr in (-1, 1):
             if isValidCell(pos[0] + direction, pos[1] + lr) and \
                     isTakeable((pos[0] + direction, pos[1] + lr), self.color) and \
-                        isPossibleMove(pos, (pos[0] + direction, pos[1] + lr)):
+                        isSafeMove(pos, (pos[0] + direction, pos[1] + lr)):
                 possible_moves_lst.append((pos, (pos[0] + direction, pos[1] + lr),
                                            move_types[takeAndPromote if pos[0] + direction == startRow((self.color + 1) % 2) else take]))
 
         if self.firstMove is True and isValidCell(pos[0] + 2*direction, pos[1]) and \
                 not isOccupied((pos[0] + direction, pos[1])) and not isOccupied((pos[0] + 2 * direction, pos[1])) and \
-                    isPossibleMove(pos, (pos[0]+2*direction, pos[1])):
+                    isSafeMove(pos, (pos[0]+2*direction, pos[1])):
             possible_moves_lst.append((pos, (pos[0] + 2*direction, pos[1]), move_types[twoCellsMove]))
 
-        if self.en_passant == move_types[enPassantLeft] and not getPiece((pos[0] + direction, pos[1] - 1)).isOccupied() and isPossibleMove:
+        if self.en_passant == move_types[enPassantLeft] and not getPiece((pos[0] + direction, pos[1] - 1)).isOccupied() and isSafeMove:
             possible_moves_lst.append((pos, (pos[0] + direction, pos[1]-1), move_types[enPassantLeft]))
 
         elif self.en_passant == move_types[enPassantRight] and not getPiece((pos[0] + direction, pos[1] + 1)).isOccupied():
@@ -203,10 +205,10 @@ class King(Piece):
                 if isValidCell(row+ud, file+lr):
                     toCell: Piece = getPiece((row + ud, file + lr))
 
-                    if not toCell.isOccupied() and isPossibleMove(self.position, (row+ud, file+lr)):
+                    if not toCell.isOccupied() and isSafeMove(self.position, (row+ud, file+lr)):
                         possible_moves_lst.append((self.position, (row+ud, file+lr), move_types[none]))
 
-                    elif toCell.isTakeable(self.color) and isPossibleMove(self.position, (row+ud, file+lr)):
+                    elif toCell.isTakeable(self.color) and isSafeMove(self.position, (row+ud, file+lr)):
                         possible_moves_lst.append((self.position, (row+ud, file+lr), move_types[take]))
 
         if self.firstMove and isSafe(self.position, self.color):
@@ -260,10 +262,10 @@ class Rook(Piece):
                 file += lr
                 currentCell: Piece = getPiece((row, file))
                 if currentCell.isOccupied():
-                    if currentCell.isTakeable(self.color) and isPossibleMove(self.position, (row, file)):
+                    if currentCell.isTakeable(self.color) and isSafeMove(self.position, (row, file)):
                         possible_moves_lst.append((self.position, (row, file), move_types[take]))
                     break
-                elif isPossibleMove(self.position, (row, file)):
+                elif isSafeMove(self.position, (row, file)):
                     possible_moves_lst.append((self.position, (row, file), move_types[none]))
 
 
@@ -310,11 +312,21 @@ rookCastle: str = "rookCastle"
 
 noneTuple: tuple[int, int] = (-1, -1)
 
+# <!-----[Notation]-----> #
+shortCastleNotation: str = "0-0"
+longCastleNotation: str = "0-0-0"
+check: str = "check"
+checkmate: str = "checkmate"
+
 #special move numbers, used with args in move()
 move_types: dict[str, int] = {none: 1, take: 2, twoCellsMove: 3, enPassantRight: 4, enPassantLeft: 5,
                               promotion: 6, takeAndPromote: 7, shortCastle: 8, longCastle: 9, rookCastle: 10,
                               }
-# promote_types_lst: list[int] = [move_types_lst[promoteKnight], move_types_lst[promoteBishop], move_types_lst[promoteRook], move_types_lst[promoteQueen]]
+move_error_types: dict[str, int] = {"unavailableMove": 0, 
+                                    "unavailableCheck": -1, 
+                                    "unavailableCheckmate": -2, 
+                                    "unavailablePromote": -3,
+                                    "unavailableTake": -4}
 
 promotePiecesList: set[str] = {knight, bishop, rook, queen}
 piecePoint: dict[str, int] = {pawn: 1, knight: 3, bishop: 3, king: 3, rook: 5, queen: 9, placeholder: 0}
@@ -361,7 +373,7 @@ pointOfColor: list[int, int] = [0, 0]
 notationsList: list[str] = []
 
 
-#<!---Moved moves---->
+# <!---Moved moves---->
 
 moved_moves: list[tuple[tuple[tuple[int, int], tuple[int, int], int], Piece]] = []
 turnInfo: list[dict[str, any]] = []
@@ -458,7 +470,7 @@ def opsColor(color: int) -> int:
 
 def getPiece(pos: tuple[int, int]) -> Piece:
     """
-    return the piece in the parameter position if is valid
+    Return the piece in the parameter position if the cell is valid and the piece exists.
     """
     global classBoard, placeHolder
     if not isValidCell(pos[0], pos[1]):
@@ -467,20 +479,20 @@ def getPiece(pos: tuple[int, int]) -> Piece:
 
 
 def convert_pos_to_cord(pos: tuple[int, int]) -> str:
-    return chr(pos[1] + 97) + str(8 - pos[0])
+    global board_size
+    return chr(pos[1] + 97) + str(board_size - pos[0])
 
 
 def convert_cord_to_pos(cord: str) -> tuple[int, int]:
-    return 8 - int(cord[1]), ord(cord[0]) - 97
+    global board_size
+    return board_size - int(cord[1]), ord(cord[0]) - 97
 
-def pawnRow(color: int) -> int:
-    return startRow(color) + pawnDirection(color)
 
 def startRow(color: int) -> int:
     """
-    return the first row of the parameter color
+    return the first row of the parameter color\n
     :param color:
-    :return:
+    :return: the start row of the parameter color
     """
     global board_size
     return ((color+1) % 2) * (board_size - 1)
@@ -553,16 +565,25 @@ def isSafe(pos: tuple[int, int], color: int) -> bool:
     return True
 
 
-def isPossibleMove(st_pos: tuple[int, int], ed_pos: tuple[int, int]) -> bool:
+def isSafeMove(st_pos: tuple[int, int], ed_pos: tuple[int, int], *forColor) -> bool:
     global classBoard, checkBoard, kings_lst, current_color, king, placeHolder, checkBoard_placeHolder
+
     org_ed_cell: tuple[str, int] = checkBoard[ed_pos[0]][ed_pos[1]]
     checkBoard[ed_pos[0]][ed_pos[1]] = checkBoard[st_pos[0]][st_pos[1]]
     checkBoard[st_pos[0]][st_pos[1]] = checkBoard_placeHolder
-    isPossible: bool
-    if getPiece(st_pos).name == king:
-        isPossible = isSafe(ed_pos, current_color)
+
+    isPossible: bool = False
+    curPiece: Piece = getPiece(st_pos)
+
+    if forColor != ():
+        checkingColor = forColor[0]
     else:
-        isPossible = isSafe(kings_lst[current_color].position, current_color)
+        checkingColor: int = current_color
+
+    if curPiece.name == king and curPiece.color == checkingColor:
+        isPossible = isSafe(ed_pos, checkingColor)
+    else:
+        isPossible = isSafe(kings_lst[checkingColor].position, checkingColor)
     checkBoard[st_pos[0]][st_pos[1]] = checkBoard[ed_pos[0]][ed_pos[1]]
     checkBoard[ed_pos[0]][ed_pos[1]] = org_ed_cell
 
@@ -578,62 +599,111 @@ def generatePossibleMoves() -> None:
                 getPiece((row, file)).get_possible_moves()
 
 
+def splitNotation(notation: str) -> list[str, str, str]:
+    global shortCastleNotation, longCastleNotation
+    if notation == shortCastleNotation or notation == longCastleNotation:
+        return ["K", "", ""]
+
+    splitedNotation: list[str] = ['']
+    id: int = 0
+    if notation[0].isupper():
+        splitedNotation[0] = notation[0]
+        id += 1
+    
+    for idx in range(id, len(notation)):
+        if notation[idx] == 'x':
+            continue
+        if notation[idx].isalpha():
+            splitedNotation.append(notation[idx])
+        else:
+            splitedNotation[-1] += notation[idx]
+
+    if len(splitedNotation) == 2:
+        splitedNotation.insert(1, "")
+
+    return splitedNotation   
+
 def convertNotationToMove(notation: str) -> tuple[tuple[int, int], tuple[int, int]]:
     global possible_moves_lst, noneTuple
-    # haveTake: bool = False
-    # rank: int = -1
-    # file: int = -1
-    # movePieceName: str = ""
-    #
-    # if notation[0].islower:
-    #     movePieceName = pawn
-    # else:
-    #     movePieceName = abbrev_to_name[notation[0]]
-    #     for index in range(1, len(notation)-2):
-    #         if notation[index] == 'x':
-    #             break
-    #         if notation[index].isdigit():
-    #             rank = 8 - int(notation[index])
-    #         elif notation[index].isalpha():
-    #             file = ord(notation[index]) - 97
-    # ed_pos: tuple[int, int] = convert_cord_to_pos(notation[-2:])
-    # move: tuple[tuple[int, int], tuple[int, int]] = (noneTuple, noneTuple)
-    #
-    # print(rank, file, ed_pos, movePieceName)
-    # for mv in possible_moves_lst:
-    #     st_cord = convert_pos_to_cord(mv[0])
-    #     print(mv)
-    #     if getPiece(move[0]).name == movePieceName and \
-    #             mv[1] == ed_pos and \
-    #             (rank == -1 or rank == st_cord) and \
-    #             (file == -1 or file == st_cord[1]):
-    #         if move == ():
-    #             move = mv[0], mv[1]
-    #         else:
-    #             return noneTuple, noneTuple
+    notationLst: list[str] = splitNotation(notation)
+
     for move in possible_moves_lst:
-        if notation == makeNotation(move):
-            return move[0], move[1]
-    return move
+        curNotationLst: list[str] = splitNotation(makeNotation(move))
+        if len(curNotationLst) < 3:
+            print(curNotationLst, move)
+            print(makeNotation(((4, 3), (3, 2), 2)))
+        if notationLst[0] == curNotationLst[0]:
+            check: bool = True
+            for idx in range(1, 3):
+                if curNotationLst[idx] not in notationLst[idx]:
+                    check = False
+                    break
+            if check:
+                return move[0], move[1]
+    return noneTuple, noneTuple
+
 
 
 def toMoveWithNotation(notation: str) -> tuple[tuple[int, int], tuple[int, int], int]:
-    haveChecked: bool = False
+    global current_color
+    haveChecking: bool = False
+    haveMateChecking: bool = False
+    haveTaking: bool = False
 
     if notation[-1] in ("+", "#"):
+        if notation[-1] == '#':
+            haveMateChecking = True
+        haveChecking = True
         notation = notation[:-1]
-        haveChecked = True
+    
+    if 'x' in notation:
+        haveTaking = True 
+        print("Have yet to implement!")
 
+    # check specifically for promoting move
     if notation[-2] == "=":
         move: tuple[tuple[int, int], tuple[int, int]] = convertNotationToMove(notation[:-2])
-        moveType: int = toMove(move[0], move[1])
-        if moveType in (move_types[promotion], move_types[takeAndPromote]):
-            toPromote(move[1], abbrev_to_name[notation[-1]])
-        return move[0], move[1], moveType
+        
+        print("Can be more specific about if the promote piece is invalid or the move is invalid.")
+        if (notation[-1] not in abbrev_to_name) or (abbrev_to_name[notation[-1]] not in promotePiecesList):
+            return noneTuple, noneTuple, move_error_types["unavailablePromote"]
+        
+        moveType: int = getMoveType(move[0], move[1])
 
+        if moveType == move_types[promotion] or moveType == move_types[takeAndPromote]:
+            move(move[0], move[1])
+            toPromote(move[1], abbrev_to_name[notation[-1]])
+            return move[0], move[1], moveType
+        
+        return noneTuple, noneTuple, move_error_types["unavailablePromote"]
+    
+    
     move: tuple[tuple[int, int], tuple[int, int]] = convertNotationToMove(notation)
+    moveType: int = getMoveType(move[0], move[1])
+
+    
+
+    if moveType == 0:
+        return noneTuple, noneTuple, move_error_types["unavailableMove"]
+
+    if haveChecking and isSafeMove(move[0], move[1], (opsColor(current_color))):
+        print("Can be more specific about a move that can't check")
+        if haveMateChecking:
+            return noneTuple, noneTuple, move_error_types["unavailableCheckmate"]
+        return noneTuple, noneTuple, move_error_types["unavailableCheck"]
+
 
     return move[0], move[1], toMove(move[0], move[1])
+
+print("Can be more specific about take move that doesn't take.")
+
+def getMoveType(st_pos: tuple[int, int], ed_pos: tuple[int, int]) -> int:
+    if st_pos == noneTuple or ed_pos == noneTuple:
+        return move_error_types["unavailableMove"]
+    for move in possible_moves_lst:
+        if move[0] == st_pos and move[1] == ed_pos:
+            return move[2] 
+    return move_error_types["unavailableMove"]
 
 
 def toMove(st_pos: tuple[int, int], ed_pos: tuple[int, int]) -> int:
@@ -641,7 +711,7 @@ def toMove(st_pos: tuple[int, int], ed_pos: tuple[int, int]) -> int:
 
     # check if the move is valid
     if st_pos == noneTuple or ed_pos == noneTuple:
-        return 0
+        return move_error_types["unavailableMove"]
 
     for move in possible_moves_lst:
         if move[0] == st_pos and move[1] == ed_pos:
@@ -651,7 +721,7 @@ def toMove(st_pos: tuple[int, int], ed_pos: tuple[int, int]) -> int:
                 return move[2]
             turnChange()
             return move[2]
-    return 0
+    return move_error_types["unavailableMove"]
 
 
 def toPromote(pos: tuple[int, int], promotePieceName: str) -> None:
@@ -784,12 +854,8 @@ def turnChange() -> bool:
 
     return True
 
-# <!-----[Notation]-----> #
-shortCastleNotation: str = "0-0"
-longCastleNotation: str = "0-0-0"
 
-check: str = "check"
-checkmate: str = "checkmate"
+
 
 def specifyCell(samePiece: int, sameRank: int, sameFile: int, pos: tuple[int, int]) -> str:
     if samePiece > 1:
@@ -922,6 +988,7 @@ def makeNotation(move: tuple[tuple[int, int], tuple[int, int], int]) -> str:
     return notationTxt
 
 
+
 def notate(move: tuple[tuple[int, int], tuple[int, int], int]) -> None:
     if move[2] == move_types[rookCastle]:
         return
@@ -981,21 +1048,5 @@ if __name__ == "__main__":
 
     def inputMove(row: int, file: int, toRow: int, toFile: int) -> bool:
         return bool(toMove((row, file), (toRow, toFile)))
-
-    # print(inputMove(6, 4, 4, 4))
-    # print(inputMove(1, 4, 3, 4))
-    # print(inputMove(6, 3, 4, 3))
-    # print(inputMove(1, 3, 3, 3))
-    # print(inputMove(7, 3, 3, 7))
-    # print(isInCheck)
-    # print(possible_moves_lst)
-
-    # while turnChange():
-    #     printBoard()
-    #     while True:
-    #         row, file, toRow, toFile = map(int, input().split())
-    #         if inputMove(row, file, toRow, toFile):
-    #             break
-    #         print("Invalid Move!")
-
+    
 
