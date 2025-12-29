@@ -202,7 +202,7 @@ def getPos(rank: int, file: int) -> None:
     else:
         moveType: int = cA.toMove(st_pos, (crank, cfile))
 
-        if moveType:
+        if moveType > 0:
             configMove(st_pos, (rank-1, file-1), moveType)
             beginningPhase()
             essential_colored_cell[0] = (st_pos[0] + 1, st_pos[1] + 1)
@@ -223,9 +223,18 @@ def loadNotation():
 
             for id in range(1, len(notationList)):
                 move: tuple[tuple[int, int], tuple[int, int], int] = cA.toMoveWithNotation(notationList[id])
-                if move == (noneTuple, noneTuple, 0):
-                    print(f"Invalid move {move}")
+                if move[:2] == (noneTuple, noneTuple):
+                    print(f"Invalid move {notationList[id]}")
+                    if move[2] == cA.move_error_types["unavailableCheck"]:
+                        print("This move is not a CHECK.")
+                    elif move[2] == cA.move_error_types["unavailableMove"]:
+                        print("This move is not a CHECKMATE.")
+                    elif move[2] == cA.move_error_types["unavailablePromote"]:
+                        print("This move is not a PROMOTE.")
+                    else:
+                        print("Unavailable move")
                     return
+                    
                 configMove(move[0], move[1], move[2], 1)
                 beginningPhase()
 
